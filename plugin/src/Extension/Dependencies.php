@@ -9,21 +9,31 @@ namespace JoomlaDependencies\Plugin\System\Dependencies\Extension;
 
 \defined('_JEXEC') or die;
 
+use Joomla\Application\ApplicationEvents;
+use Joomla\Application\Event\ApplicationEvent;
+use Joomla\CMS\Application\ConsoleApplication;
 use Joomla\CMS\Event\Extension\AfterInstallEvent;
 use Joomla\CMS\Event\Extension\AfterUninstallEvent;
 use Joomla\CMS\Event\Extension\AfterUpdateEvent;
 use Joomla\CMS\Event\Extension\BeforeInstallEvent;
 use Joomla\CMS\Event\Extension\BeforeUninstallEvent;
 use Joomla\CMS\Event\Extension\BeforeUpdateEvent;
+use Joomla\CMS\Event\Installer\AddInstallationTabEvent;
 use Joomla\CMS\Event\Installer\BeforeInstallerEvent;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Plugin\PluginHelper;
+use Joomla\Event\Priority;
 use Joomla\Event\SubscriberInterface;
+use JoomlaDependencies\Plugin\System\Dependencies\Console\StatusCommand;
+use JoomlaDependencies\Plugin\System\Dependencies\Console\SyncCommand;
+use JoomlaDependencies\Plugin\System\Dependencies\Console\UnlockAllCommand;
 use JoomlaDependencies\Plugin\System\Dependencies\Dependency\ExtensionKey;
 use JoomlaDependencies\Plugin\System\Dependencies\Dependency\InstalledExtension;
 use JoomlaDependencies\Plugin\System\Dependencies\Dependency\ManifestReader;
 use JoomlaDependencies\Plugin\System\Dependencies\Site\DependencyService;
 use JoomlaDependencies\Plugin\System\Dependencies\Site\ExtensionTable;
+use JoomlaDependencies\Plugin\System\Dependencies\Site\Overview;
 
 /**
  * Dependency management for extensions, from installer events only.
@@ -76,14 +86,53 @@ final class Dependencies extends CMSPlugin implements SubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            'onInstallerBeforeInstaller' => 'onInstallerBeforeInstaller',
-            'onExtensionBeforeInstall'   => 'onExtensionBeforeInstall',
-            'onExtensionBeforeUpdate'    => 'onExtensionBeforeUpdate',
-            'onExtensionAfterInstall'    => 'onExtensionAfterInstall',
-            'onExtensionAfterUpdate'     => 'onExtensionAfterUpdate',
-            'onExtensionBeforeUninstall' => 'onExtensionBeforeUninstall',
-            'onExtensionAfterUninstall'  => 'onExtensionAfterUninstall',
+            'onInstallerBeforeInstaller'      => 'onInstallerBeforeInstaller',
+            'onExtensionBeforeInstall'        => 'onExtensionBeforeInstall',
+            'onExtensionBeforeUpdate'         => 'onExtensionBeforeUpdate',
+            'onExtensionAfterInstall'         => 'onExtensionAfterInstall',
+            'onExtensionAfterUpdate'          => 'onExtensionAfterUpdate',
+            'onExtensionBeforeUninstall'      => 'onExtensionBeforeUninstall',
+            'onExtensionAfterUninstall'       => 'onExtensionAfterUninstall',
+            // Last, so the upload tab stays the first and default one.
+            'onInstallerAddInstallationTab'   => ['onInstallerAddInstallationTab', Priority::MIN],
+            ApplicationEvents::BEFORE_EXECUTE => 'registerCommands',
         ];
+    }
+
+    /**
+     * A "Dependencies" tab on System > Install > Extensions: what is declared, what is unmet, what is locked.
+     */
+    public function onInstallerAddInstallationTab(AddInstallationTabEvent $event): void
+    {
+        $overview = Overview::of($this->service);
+
+        ob_start();
+        include PluginHelper::getLayoutPath('system', 'dependencies');
+        $content = (string) ob_get_clean();
+
+        $label = Text::_('PLG_SYSTEM_DEPENDENCIES_TAB');
+
+        if ($overview->unmetCount() > 0) {
+            $label .= ' (' . Text::plural('PLG_SYSTEM_DEPENDENCIES_TAB_UNMET', $overview->unmetCount()) . ')';
+        }
+
+        $event->addResult(['name' => 'dependencies', 'label' => $label, 'content' => $content]);
+    }
+
+    /**
+     * dependencies:status, dependencies:sync and dependencies:unlock-all.
+     */
+    public function registerCommands(ApplicationEvent $event): void
+    {
+        $application = $event->getApplication();
+
+        if (!$application instanceof ConsoleApplication) {
+            return;
+        }
+
+        $application->addCommand(new StatusCommand($this->service));
+        $application->addCommand(new SyncCommand($this->service));
+        $application->addCommand(new UnlockAllCommand($this->service));
     }
 
     /**

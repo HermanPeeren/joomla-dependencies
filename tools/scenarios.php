@@ -48,6 +48,8 @@ check('no warnings', !str_contains($out, 'WARNING'), $out);
 check('lib_shared locked', locked('library', 'shared') === [1]);
 check('lock recorded as ours', locks() === ['library:shared::']);
 check('lib_shared belongs to pkg_a', packageOf('library', 'shared') === 'pkg_a');
+$out = cli('dependencies:status', $exitCode);
+check('dependencies:status lists the lock and exits 0', $exitCode === 0 && str_contains($out, 'Fixture library shared com_a'), $out);
 
 step('Scenario 5: pkg_b carrying lib_shared 1.1.0');
 $out = cli("extension:install --path=$root/fixtures/dist/pkg_b-1.0.0-with-shared-1.1.0.zip");
@@ -69,6 +71,8 @@ check('installed anyway (the CLI has no veto)', str_contains($out, 'installed su
 check('one row, version 2.0.0', versions('library', 'shared') === ['2.0.0']);
 check('warns for com_a', str_contains($out, 'com_a needs library shared ^1.0, but version 2.0.0 is installed'), $out);
 check('warns for com_b', str_contains($out, 'com_b needs library shared ^1.0, but version 2.0.0 is installed'), $out);
+cli('dependencies:status', $exitCode);
+check('dependencies:status exits 1 while a dependency is unmet', $exitCode === 1);
 cli("extension:install --path=$root/fixtures/dist/lib_shared-1.2.0.zip");
 check('back to 1.2.0 (a downgrade the CLI cannot refuse)', versions('library', 'shared') === ['1.2.0']);
 
@@ -121,11 +125,11 @@ exit($failures === 0 ? 0 : 1);
 
 // ---------------------------------------------------------------------------------------------------------------
 
-function cli(string $arguments): string
+function cli(string $arguments, ?int &$exitCode = null): string
 {
     global $site;
 
-    exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg("$site/cli/joomla.php") . " $arguments -n 2>&1", $output);
+    exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg("$site/cli/joomla.php") . " $arguments -n 2>&1", $output, $exitCode);
 
     // Joomla's CLI wraps long lines; join them so a message can be found in one piece.
     $text = preg_replace('/\e\[[0-9;]*m/', '', implode("\n", $output));

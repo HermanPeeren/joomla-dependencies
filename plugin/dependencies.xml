@@ -29,6 +29,7 @@
         <folder plugin="dependencies">services</folder>
         <folder>language</folder>
         <folder>sql</folder>
+        <folder>tmpl</folder>
         <folder>src</folder>
         <folder>vendor-prefixed</folder>
         <filename>autoload.php</filename>

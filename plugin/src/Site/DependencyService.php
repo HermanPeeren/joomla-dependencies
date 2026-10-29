@@ -180,6 +180,14 @@ final class DependencyService
         return \count($this->store->locks());
     }
 
+    /**
+     * @return string[]  Key ids of the extensions this plugin locked
+     */
+    public function locks(): array
+    {
+        return $this->store->locks();
+    }
+
     public function isOurs(ExtensionKey $key): bool
     {
         return \in_array($key->id(), $this->store->locks(), true);
