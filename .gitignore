@@ -1,0 +1,8 @@
+/joomla/
+/fixtures/dist/
+/probe/dist/
+/vendor/
+/composer.lock
+/cypress.env.json
+/.idea/
+/.vscode/
