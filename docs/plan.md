@@ -34,7 +34,7 @@ A new `<dependencies>` element in any extension manifest. Joomla ignores element
 
 - **Identity** follows `#__extensions`: `type` + `element`, plus `folder` for plugins and `client` (`site`/`administrator`) for modules, templates and languages. The `element` is the same value as in `#__extensions` (`yepr_gen` for a library, not `lib_yepr_gen`).
 - **`version`** is an optional constraint in Composer syntax (`^`, `~`, ranges, `||`), checked against the version in `#__extensions.manifest_cache`. Without it, any installed version counts.
-- **Constraint library:** `composer/semver`. Joomla ships it only as a development dependency, so the prototype bundles its own copy with the namespace prefixed (PHP-Scoper or Strauss). That doubles as a test of the path A advice.
+- **Constraint library:** `composer/semver`. Joomla ships it only as a development dependency, so the prototype bundles its own copy with the namespace prefixed (by `tools/prefix-vendor.php`; see phase 1). That doubles as a test of the path A advice.
 - **Left for later, deliberately:** `optional="true"` (suggests), `conflicts`, and what to do with dependencies of disabled extensions (in the prototype, installed counts, enabled or not).
 
 ## How it works: one package, two plugins
@@ -134,6 +134,13 @@ What we know now. The prototype will confirm or extend it.
 - Constraint checking with the scoped `composer/semver`.
 - The "site after this install" model.
 - PHPUnit tests for all of these, without a database.
+
+> **Done.** Classes in `plugin/src/Dependency/`, 60 tests in `tests/Dependency/`. The install-check parts of scenarios 1, 3, 4, 5, 9, 11 and 12 pass on the real fixture zips. Notes:
+> - **Prefixing:** Strauss failed on Windows paths, and PHP-Scoper is heavy for one small package. `tools/prefix-vendor.php` rewrites `composer/semver`'s namespace itself, which works because the package has no dependencies and names its namespace only in `namespace`/`use` lines.
+> - **Pre-releases:** as in Composer, `>=2.0.0` accepts `2.0.0-beta1`, while `^1.0` doesn't. Composer filters stability separately; the prototype has no equivalent yet.
+> - **A dependency that was already unmet doesn't block an install.** Updating `lib_shared` from 2.0 to 2.1 isn't refused just because `com_a` wanted `^1.0` before too.
+> - **Not supported:** a package child stored as an unpacked folder *inside a package zip*. That becomes a warning. Children as folders in an unpacked package do work.
+> - **Messages** are English fallbacks in `Problem::message()`; phase 4 replaces them with language strings.
 
 **2. Recording and locking**: the extension plugin.
 - Edges, locks, the unlock/relock around updates, `package_id` repair.

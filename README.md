@@ -21,16 +21,22 @@ What it cannot do without core changes is part of the result: the prototype is m
 
 ## Status
 
-Phase 0 done: test site, fixture extensions and an event probe; findings in [docs/event-probe.md](docs/event-probe.md). There is no installable prototype yet.
+- **Phase 0, done:** test site, fixture extensions and an event probe; findings in [docs/event-probe.md](docs/event-probe.md).
+- **Phase 1, done:** reading `<dependencies>` from manifests (packages included), version constraints, and the install check, all in plain PHP with unit tests. See `plugin/src/Dependency/`.
+- There is no installable plugin yet; that is phase 2.
 
 ## Working on it
 
-Requirements: PHP 8.3 or newer with `zip`, a MySQL or MariaDB server, and `curl` and `unzip` on the command line.
+Requirements: PHP 8.3 or newer with `zip`, Composer, a MySQL or MariaDB server, and `curl` and `unzip` on the command line.
 
 ```bash
+composer install                             # also copies composer/semver into plugin/vendor-prefixed/
+composer test                                # PHPUnit; needs no Joomla site
 ADMIN_PASSWORD=... tools/install-joomla.sh   # installs the latest stable Joomla into joomla/
 php tools/build.php                          # builds the fixture and probe zips into fixtures/dist/ and probe/dist/
 ```
+
+The plugin uses `composer/semver` for version constraints. Another extension, or a later Joomla, may load its own copy, so `tools/prefix-vendor.php` copies it under the namespace `JoomlaDependencies\Vendor\`, and the plugin uses only that copy. That is the advice the prototype will give other developers, applied to itself.
 
 `tools/install-joomla.sh` takes the Super User from `ADMIN_USERNAME` (default `admin`) and `ADMIN_PASSWORD` (required, at least 12 characters). It reads the database connection from `DB_HOST`, `DB_USER`, `DB_PASS` and `DB_NAME`; those defaults suit a local WAMP or XAMPP. The `joomla/` folder and the generated `cypress.env.json` are git-ignored.
 

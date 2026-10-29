@@ -1,0 +1,40 @@
+{
+    "name": "hermanpeeren/joomla-dependencies",
+    "description": "Prototype of dependency management between Joomla extensions, without a core change.",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Herman Peeren",
+            "email": "herman@yepr.nl"
+        }
+    ],
+    "require": {
+        "php": ">=8.3",
+        "composer/semver": "^3.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "JoomlaDependencies\\Plugin\\System\\Dependencies\\": "plugin/src/"
+        },
+        "classmap": [
+            "plugin/vendor-prefixed/"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JoomlaDependencies\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "prefix": "@php tools/prefix-vendor.php",
+        "pre-autoload-dump": "@prefix",
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
