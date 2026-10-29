@@ -8,3 +8,4 @@
 /.vscode/
 /plugin/vendor-prefixed/
 /.phpunit.cache/
+/dist/

@@ -12,6 +12,32 @@ $root = \dirname(__DIR__);
 
 buildFixtures($root . '/fixtures/fixtures.php', $root . '/fixtures/dist');
 buildProbe($root . '/probe', $root . '/probe/dist');
+buildPlugin($root . '/plugin', $root . '/dist');
+
+/**
+ * The installable plugin: everything in plugin/, including the prefixed composer/semver.
+ */
+function buildPlugin(string $source, string $dist): void
+{
+    if (!is_dir("$source/vendor-prefixed/composer/semver")) {
+        throw new RuntimeException('plugin/vendor-prefixed is missing; run composer install first.');
+    }
+
+    $version = (string) simplexml_load_file("$source/dependencies.xml")->version;
+    $files   = [];
+    $items   = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source, FilesystemIterator::SKIP_DOTS));
+
+    foreach ($items as $item) {
+        if ($item->isFile()) {
+            $files[str_replace('\\', '/', substr($item->getPathname(), \strlen($source) + 1))] = file_get_contents($item->getPathname());
+        }
+    }
+
+    resetDir($dist);
+    writeZip("$dist/plg_system_dependencies-$version.zip", $files);
+
+    echo "Plugin: plg_system_dependencies-$version.zip in dist/\n";
+}
 
 function buildFixtures(string $definitionFile, string $dist): void
 {
@@ -303,11 +329,23 @@ function writeZip(string $file, array $files): void
     $zip->close();
 }
 
+/**
+ * Empties $dir, folders included: Joomla's `extension:install --path` leaves install_* folders next to the zip.
+ */
 function resetDir(string $dir): void
 {
-    if (is_dir($dir)) {
-        array_map('unlink', glob("$dir/*"));
-    } else {
+    if (!is_dir($dir)) {
         mkdir($dir, 0777, true);
+
+        return;
+    }
+
+    $items = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+
+    foreach ($items as $item) {
+        $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
     }
 }

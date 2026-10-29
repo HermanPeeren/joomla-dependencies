@@ -71,6 +71,24 @@ final readonly class ExtensionKey
         return implode(':', [$this->type, strtolower($this->element), $this->folder, $this->clientId ?? '']);
     }
 
+    /**
+     * The key back from id(); the element comes back in lower case.
+     *
+     * @throws \InvalidArgumentException
+     */
+    public static function fromId(string $id): self
+    {
+        $parts = explode(':', $id);
+
+        if (\count($parts) !== 4) {
+            throw new \InvalidArgumentException(\sprintf('Not an extension key id: "%s"', $id));
+        }
+
+        [$type, $element, $folder, $client] = $parts;
+
+        return self::of($type, $element, $folder, $client === '' ? null : (int) $client);
+    }
+
     public function equals(self $other): bool
     {
         return $this->id() === $other->id();
@@ -84,17 +102,25 @@ final readonly class ExtensionKey
         $name = $this->type === 'plugin' ? $this->folder . '/' . $this->element : $this->element;
 
         if ($this->clientId !== null) {
-            $name .= $this->clientId === 1 ? ' (administrator)' : ' (site)';
+            $name .= match ($this->clientId) {
+                1       => ' (administrator)',
+                3       => ' (api)',
+                default => ' (site)',
+            };
         }
 
         return $this->type . ' ' . $name;
     }
 
+    /**
+     * Joomla's client ids: 0 site, 1 administrator, 3 api (language packs have an api part).
+     */
     private static function clientId(string|int|null $client): int
     {
         return match (\is_string($client) ? strtolower(trim($client)) : $client) {
-            null, '', 0, '0', 'site'      => 0,
+            null, '', 0, '0', 'site'         => 0,
             1, '1', 'administrator', 'admin' => 1,
+            3, '3', 'api'                    => 3,
             default => throw new \InvalidArgumentException(\sprintf('Unknown client "%s"', $client)),
         };
     }

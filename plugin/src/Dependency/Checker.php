@@ -19,7 +19,7 @@ final class Checker
      *
      * - Requirements of the incoming extensions must be met by the site after the install; a package can meet
      *   its own children's requirements.
-     * - An incoming extension must not be older than the installed one it replaces.
+     * - An incoming extension that installed extensions depend on must not be older than the one it replaces.
      * - An installed extension whose requirement on an incoming extension was met must still be met. A requirement
      *   that was already unmet before is not this install's fault, and doesn't block it.
      *
@@ -112,11 +112,15 @@ final class Checker
         return new Problem(ProblemType::WrongVersion, $subject, $requirement, $found);
     }
 
+    /**
+     * Only for extensions that another installed extension depends on: Joomla lets you install an older version
+     * of anything, and the prototype doesn't change that for extensions nobody else needs.
+     */
     private function checkDowngrade(ExtensionManifest $item, SiteState $site): ?Problem
     {
         $installed = $site->find($item->key);
 
-        if ($installed === null) {
+        if ($installed === null || $site->dependentsOf($item->key) === []) {
             return null;
         }
 

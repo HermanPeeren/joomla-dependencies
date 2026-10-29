@@ -27,6 +27,17 @@ final class ExtensionKeyTest extends TestCase
         $this->assertTrue(ExtensionKey::of('component', 'com_foo', '', 'site')->equals(ExtensionKey::of('component', 'com_foo', '', 'administrator')));
     }
 
+    public function testRoundTripsThroughItsId(): void
+    {
+        foreach ([
+            ExtensionKey::of('plugin', 'Foo', 'system'),
+            ExtensionKey::of('language', 'nl-NL', '', 'api'),
+            ExtensionKey::of('library', 'yepr/gen'),
+        ] as $key) {
+            $this->assertTrue($key->equals(ExtensionKey::fromId($key->id())));
+        }
+    }
+
     public function testReadableForm(): void
     {
         $this->assertSame('library shared', (string) ExtensionKey::of('library', 'shared'));
@@ -43,7 +54,7 @@ final class ExtensionKeyTest extends TestCase
             'unknown type'      => ['widget', 'foo', '', null],
             'empty element'     => ['library', ' ', '', null],
             'plugin, no folder' => ['plugin', 'foo', '', null],
-            'unknown client'    => ['module', 'mod_foo', '', 'api'],
+            'unknown client'    => ['module', 'mod_foo', '', 'cli'],
         ];
     }
 

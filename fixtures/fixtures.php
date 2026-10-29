@@ -26,6 +26,13 @@ return [
                 ['type' => 'php-extension', 'element' => 'sodium'],
             ],
         ],
+        // A PHP extension no PHP has, for a refusal that doesn't depend on which PHP runs the install.
+        'com_d' => [
+            'version'      => '1.0.0',
+            'dependencies' => [
+                ['type' => 'php-extension', 'element' => 'imaginary'],
+            ],
+        ],
     ],
 
     // Zip name => package; children are names of zips built above.

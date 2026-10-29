@@ -129,6 +129,13 @@ final class CheckerTest extends TestCase
         $this->assertSame([ProblemType::Unreadable], $this->types($problems));
     }
 
+    public function testADowngradeOfAnExtensionNobodyNeedsIsAllowed(): void
+    {
+        $site = $this->site([$this->shared('1.1.0')]);
+
+        $this->assertSame([], $this->check($this->manifest('library', 'shared', '1.0.0'), $site));
+    }
+
     public function testAReinstallOfTheSameVersionIsNotADowngrade(): void
     {
         $site = $this->site([$this->shared('1.1.0')]);

@@ -23,7 +23,7 @@ What it cannot do without core changes is part of the result: the prototype is m
 
 - **Phase 0, done:** test site, fixture extensions and an event probe; findings in [docs/event-probe.md](docs/event-probe.md).
 - **Phase 1, done:** reading `<dependencies>` from manifests (packages included), version constraints, and the install check, all in plain PHP with unit tests. See `plugin/src/Dependency/`.
-- There is no installable plugin yet; that is phase 2.
+- **Phase 2, done:** `plg_system_dependencies` records every extension's `<dependencies>`, locks what others need, unlocks a library around its own update, and lets a package take along children only it needed. `php tools/scenarios.php` runs the command-line scenarios against the test site.
 
 ## Working on it
 
@@ -33,7 +33,8 @@ Requirements: PHP 8.3 or newer with `zip`, Composer, a MySQL or MariaDB server, 
 composer install                             # also copies composer/semver into plugin/vendor-prefixed/
 composer test                                # PHPUnit; needs no Joomla site
 ADMIN_PASSWORD=... tools/install-joomla.sh   # installs the latest stable Joomla into joomla/
-php tools/build.php                          # builds the fixture and probe zips into fixtures/dist/ and probe/dist/
+php tools/build.php                          # builds the plugin into dist/, fixtures and probe into fixtures/dist/ and probe/dist/
+php tools/scenarios.php                      # command-line scenarios against a fresh test site
 ```
 
 The plugin uses `composer/semver` for version constraints. Another extension, or a later Joomla, may load its own copy, so `tools/prefix-vendor.php` copies it under the namespace `JoomlaDependencies\Vendor\`, and the plugin uses only that copy. That is the advice the prototype will give other developers, applied to itself.
