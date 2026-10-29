@@ -108,7 +108,7 @@ The second table matters: core extensions already have `locked = 1`. The prototy
 
 ## What the prototype can't do (the list for core)
 
-What we know now. The prototype will confirm or extend it.
+What we knew before building it. The final list, confirmed and extended by the prototype, is in [results.md](results.md#what-joomla-core-would-need).
 
 | Gap | Effect in the prototype | Core change |
 |---|---|---|
@@ -157,6 +157,14 @@ What we know now. The prototype will confirm or extend it.
 - Install and uninstall of the prototype itself.
 - Try it with the generator family (`lib_yepr_gen`, Exten-gen, Gen-gen) on a copy of a site.
 - Update the "for core" list, and write the RFC follow-up.
+
+> **Phases 2–5 done.** The results, findings and the final list of core changes are in [results.md](results.md); the RFC follow-up draft is in [rfc-followup.md](rfc-followup.md). Changes from the plan along the way:
+> - **One system plugin** instead of an installer plugin plus an extension plugin (phase 0).
+> - **Downgrades are refused only for extensions another installed extension depends on.** Joomla's normal "install an older version" stays as it is for everything else.
+> - **Manage and `extension:remove` check `locked` before any event**, so the plugin can't explain a refusal there (scenario 8); the Dependencies tab shows the reasons instead.
+> - **A library orphaned by an update** goes back to the latest package that lists it.
+> - **New `bundled` attribute** for extensions that install their own dependency from their script (Exten-gen's pattern), found in phase 5.
+> - **Gen-gen was not tried separately:** it uses the same library pattern as Exten-gen. The evaluation ran on the test site rather than on a copy of a real site.
 
 ## Test scenarios (the acceptance list)
 

@@ -9,3 +9,4 @@
 /plugin/vendor-prefixed/
 /.phpunit.cache/
 /dist/
+/eval/dist/

@@ -18,7 +18,8 @@ final class Checker
      * Everything that stands in the way of installing $incoming (an extension or a whole package) on $site.
      *
      * - Requirements of the incoming extensions must be met by the site after the install; a package can meet
-     *   its own children's requirements.
+     *   its own children's requirements, and an extension the dependencies it bundles (installed only when the
+     *   site doesn't meet the requirement already, as the extension's own script would).
      * - An incoming extension that installed extensions depend on must not be older than the one it replaces.
      * - An installed extension whose requirement on an incoming extension was met must still be met. A requirement
      *   that was already unmet before is not this install's fault, and doesn't block it.
@@ -27,11 +28,22 @@ final class Checker
      */
     public function checkInstall(ExtensionManifest $incoming, SiteState $site): array
     {
-        $after    = $site->withInstalled($incoming);
-        $problems = [];
-        $incomingIds = [];
+        $items = $incoming->flatten();
 
         foreach ($incoming->flatten() as $item) {
+            array_push($items, ...$this->bundledToInstall($item, $site));
+        }
+
+        $after = $site;
+
+        foreach ($items as $item) {
+            $after = $after->withInstalled($item);
+        }
+
+        $problems    = [];
+        $incomingIds = [];
+
+        foreach ($items as $item) {
             $incomingIds[$item->key->id()] = true;
 
             foreach ($item->requirements as $requirement) {
@@ -79,6 +91,28 @@ final class Checker
         }
 
         return $problems;
+    }
+
+    /**
+     * The extensions $item carries itself (bundled="...") that its install script will install: those whose
+     * requirement the site doesn't meet yet.
+     *
+     * @return ExtensionManifest[]
+     */
+    private function bundledToInstall(ExtensionManifest $item, SiteState $site): array
+    {
+        $toInstall = [];
+
+        foreach ($item->bundled as $bundled) {
+            foreach ($item->requirements as $requirement) {
+                if ($requirement->targets($bundled->key) && $this->checkRequirement($item->name, $requirement, $site) !== null) {
+                    array_push($toInstall, ...$bundled->flatten());
+                    break;
+                }
+            }
+        }
+
+        return $toInstall;
     }
 
     /**

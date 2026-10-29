@@ -143,6 +143,25 @@ final class CheckerTest extends TestCase
         $this->assertSame([], $this->check($this->manifest('library', 'shared', '1.1.0'), $site));
     }
 
+    public function testABundledDependencyCountsWhenTheSiteLacksIt(): void
+    {
+        // Exten-gen's pattern: the component carries the library and installs it from its postflight.
+        $this->assertSame([], $this->check($this->comABundling('1.1.0'), $this->site()));
+    }
+
+    public function testABundledDependencyIsNotInstalledWhenTheSiteMeetsTheRequirement(): void
+    {
+        // The site's 1.2.0 meets ^1.0, so the bundled 1.1.0 stays in the zip: no downgrade.
+        $this->assertSame([], $this->check($this->comABundling('1.1.0'), $this->site([$this->shared('1.2.0'), $this->installed($this->comA())])));
+    }
+
+    public function testABundledDependencyThatDoesNotMeetTheRequirementIsReported(): void
+    {
+        $problems = $this->check($this->comABundling('0.9.0'), $this->site());
+
+        $this->assertSame([ProblemType::WrongVersion], $this->types($problems));
+    }
+
     public function testDependentsOf(): void
     {
         $site = $this->site([
@@ -196,6 +215,17 @@ final class CheckerTest extends TestCase
     private function comA(): ExtensionManifest
     {
         return $this->manifest('component', 'com_a', '1.0.0', [Requirement::extension($this->sharedKey(), '^1.0')]);
+    }
+
+    private function comABundling(string $sharedVersion): ExtensionManifest
+    {
+        return new ExtensionManifest(
+            ExtensionKey::of('component', 'com_a'),
+            'com_a',
+            '1.0.0',
+            [Requirement::extension($this->sharedKey(), '^1.0')],
+            bundled: [$this->manifest('library', 'shared', $sharedVersion)]
+        );
     }
 
     private function pkgA(string $sharedVersion): ExtensionManifest

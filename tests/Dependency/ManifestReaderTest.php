@@ -171,6 +171,33 @@ final class ManifestReaderTest extends TestCase
         $this->assertSame('2.0.0', $manifest->children[0]->version);
     }
 
+    public function testReadsABundledDependency(): void
+    {
+        mkdir($this->tmp . '/library');
+        $this->zip($this->tmp . '/library/lib_shared-1.1.0.zip', ['shared.xml' => $this->library('shared', '1.1.0')]);
+        file_put_contents($this->tmp . '/a.xml', '<extension type="component"><name>com_a</name><version>1.0.0</version><dependencies>'
+            . '<dependency type="library" element="shared" version="^1.0" bundled="library/lib_shared-1.1.0.zip" /></dependencies></extension>');
+
+        $manifest = (new ManifestReader())->fromDirectory($this->tmp);
+
+        $this->assertSame([], $manifest->warnings);
+        $this->assertCount(1, $manifest->bundled);
+        $this->assertSame('1.1.0', $manifest->bundled[0]->version);
+        $this->assertSame(['component:com_a::'], array_map(static fn ($m) => $m->key->id(), $manifest->flatten()));
+    }
+
+    public function testABundledFileThatIsAnotherExtensionBecomesAWarning(): void
+    {
+        $this->zip($this->tmp . '/other.zip', ['other.xml' => $this->library('other', '1.0.0')]);
+        file_put_contents($this->tmp . '/a.xml', '<extension type="component"><name>com_a</name><dependencies>'
+            . '<dependency type="library" element="shared" bundled="other.zip" /></dependencies></extension>');
+
+        $manifest = (new ManifestReader())->fromDirectory($this->tmp);
+
+        $this->assertSame([], $manifest->bundled);
+        $this->assertStringContainsString('library other, which no <dependency> names', $manifest->warnings[0]);
+    }
+
     public function testABrokenPackageChildBecomesAWarning(): void
     {
         $this->zip($this->tmp . '/plg.zip', ['foo.xml' => '<extension type="plugin" group="system"><name>No files</name></extension>']);

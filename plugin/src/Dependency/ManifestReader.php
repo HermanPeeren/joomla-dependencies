@@ -54,7 +54,7 @@ final class ManifestReader
 
     /**
      * @param  callable(string $path): ExtensionManifest|null  $loadChild
-     *         Reads a package child by its path relative to the package manifest; null to skip children
+     *         Reads a package child or a bundled dependency by its path relative to the manifest; null to skip both
      *
      * @throws \RuntimeException  When the manifest doesn't identify an extension
      */
@@ -72,10 +72,16 @@ final class ManifestReader
         array_push($warnings, ...$requirementWarnings);
 
         $children = [];
+        $bundled  = [];
 
-        if ($key->type === 'package' && $loadChild !== null) {
-            [$children, $childWarnings] = $this->children($xml, $loadChild);
-            array_push($warnings, ...$childWarnings);
+        if ($loadChild !== null) {
+            if ($key->type === 'package') {
+                [$children, $childWarnings] = $this->children($xml, $loadChild);
+                array_push($warnings, ...$childWarnings);
+            }
+
+            [$bundled, $bundledWarnings] = $this->bundled($xml, $requirements, $loadChild);
+            array_push($warnings, ...$bundledWarnings);
         }
 
         return new ExtensionManifest(
@@ -84,8 +90,49 @@ final class ManifestReader
             trim((string) $xml->version),
             $requirements,
             $children,
-            $warnings
+            $warnings,
+            $bundled
         );
+    }
+
+    /**
+     * Dependencies the extension carries itself: <dependency ... bundled="library/lib_foo-1.2.0.zip" />. The bundled
+     * file must be the extension the dependency names.
+     *
+     * @param  Requirement[]  $requirements  As read from the same <dependencies>, in order
+     *
+     * @return array{ExtensionManifest[], string[]}
+     */
+    private function bundled(\SimpleXMLElement $xml, array $requirements, callable $loadChild): array
+    {
+        $bundled  = [];
+        $warnings = [];
+
+        foreach ($xml->dependencies->dependency ?? [] as $dependency) {
+            $path = trim((string) $dependency['bundled']);
+
+            if ($path === '') {
+                continue;
+            }
+
+            try {
+                $manifest = $loadChild($path);
+            } catch (\RuntimeException $e) {
+                $warnings[] = $e->getMessage();
+                continue;
+            }
+
+            $declared = array_filter($requirements, static fn (Requirement $requirement): bool => $requirement->targets($manifest->key));
+
+            if ($declared === []) {
+                $warnings[] = \sprintf('Bundled file %s is %s, which no <dependency> names', $path, $manifest->key);
+                continue;
+            }
+
+            $bundled[] = $manifest;
+        }
+
+        return [$bundled, $warnings];
     }
 
     private function fromZipContents(string $contents, string $label): ExtensionManifest

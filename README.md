@@ -24,6 +24,30 @@ What it cannot do without core changes is part of the result: the prototype is m
 - **Phase 0, done:** test site, fixture extensions and an event probe; findings in [docs/event-probe.md](docs/event-probe.md).
 - **Phase 1, done:** reading `<dependencies>` from manifests (packages included), version constraints, and the install check, all in plain PHP with unit tests. See `plugin/src/Dependency/`.
 - **Phase 2, done:** `plg_system_dependencies` records every extension's `<dependencies>`, locks what others need, unlocks a library around its own update, and lets a package take along children only it needed. `php tools/scenarios.php` runs the command-line scenarios against the test site.
+- **Phase 3, done:** the install screen refuses installs whose dependencies aren't met, downgrades of shared extensions and updates that would break an installed extension; tested in the browser, including the update view.
+- **Phase 4, done:** `dependencies:status`, `dependencies:sync` and `dependencies:unlock-all` on the CLI, and a "Dependencies" tab on System → Install → Extensions.
+- **Phase 5, done:** evaluated with Exten-gen and its shared library, which led to the `bundled` attribute.
+
+**Results, findings and what Joomla core would need: [docs/results.md](docs/results.md).** A draft follow-up for the Joomla RFC is in [docs/rfc-followup.md](docs/rfc-followup.md).
+
+## The manifest format
+
+```xml
+<dependencies>
+    <dependency type="library" element="shared" version="^1.0" />
+    <dependency type="plugin" folder="system" element="foo" version="&gt;=2.1" />
+    <dependency type="module" client="administrator" element="mod_bar" />
+    <dependency type="joomla" version="^6.1" />
+    <dependency type="php" version="&gt;=8.3" />
+    <dependency type="php-extension" element="sodium" />
+    <dependency type="library" element="yepr_gen" version="^0.19.1" bundled="library/lib_yepr_gen-0.19.1.zip" />
+</dependencies>
+```
+
+- `type`: an extension type (`component`, `module`, `plugin`, `template`, `language`, `library`, `package`, `file`), or `joomla`, `php`, `php-extension`.
+- `element`: as in `#__extensions.element`: `com_foo`, `mod_foo`, `pkg_foo`, the plugin's element, a library's `libraryname`. Plugins also need `folder` (their group); modules, templates and languages may give `client` (`site`, the default, or `administrator`).
+- `version`: optional, in Composer's constraint syntax (`^1.2`, `~1.2.3`, `>=1.0 <2.0`, `^1.0 || ^2.0`).
+- `bundled`: optional, a path inside the extension's own zip. Use it when the extension carries that dependency and installs it from its own script; the install check then counts it as installed when the site's version doesn't meet the constraint.
 
 ## Working on it
 
@@ -35,7 +59,10 @@ composer test                                # PHPUnit; needs no Joomla site
 ADMIN_PASSWORD=... tools/install-joomla.sh   # installs the latest stable Joomla into joomla/
 php tools/build.php                          # builds the plugin into dist/, fixtures and probe into fixtures/dist/ and probe/dist/
 php tools/scenarios.php                      # command-line scenarios against a fresh test site
+php tools/eval-variants.php <zip> <library> <constraint>   # variants of an extension zip with <dependencies>, into eval/dist/
 ```
+
+The plugin to install on a site is `dist/plg_system_dependencies-<version>.zip`.
 
 The plugin uses `composer/semver` for version constraints. Another extension, or a later Joomla, may load its own copy, so `tools/prefix-vendor.php` copies it under the namespace `JoomlaDependencies\Vendor\`, and the plugin uses only that copy. That is the advice the prototype will give other developers, applied to itself.
 
@@ -50,8 +77,11 @@ Small extensions that exist only to be installed and uninstalled in the test sce
 | `lib_shared` 1.0.0, 1.1.0, 1.2.0, 2.0.0 | the shared library |
 | `com_a`, `com_b` | each needs `lib_shared ^1.0` |
 | `com_c` | needs `com_a >=1.0` and the PHP extension `sodium` |
+| `com_d` | needs a PHP extension that no PHP has |
 | `pkg_a` | `lib_shared` 1.1.0 + `com_a` |
 | `pkg_b` | `lib_shared` + `com_b`, built twice: with `lib_shared` 1.0.0 and with 1.1.0 |
+
+The `lib_shared` versions have an update server at `fixtures/dist/updates/shared.xml`, which offers 1.2.0; copy `updates/shared-<version>.xml` over it to offer another version.
 
 ### The event probe
 

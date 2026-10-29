@@ -19,6 +19,8 @@ final readonly class ExtensionManifest
      * @param  Requirement[]        $requirements
      * @param  ExtensionManifest[]  $children  A package's extensions; empty for other types
      * @param  string[]             $warnings  Problems in the manifest itself, e.g. an unknown dependency type
+     * @param  ExtensionManifest[]  $bundled   Dependencies the extension carries itself and installs when the site's
+     *                                         version doesn't do (<dependency bundled="path/in/zip">)
      */
     public function __construct(
         public ExtensionKey $key,
@@ -26,7 +28,8 @@ final readonly class ExtensionManifest
         public string $version,
         public array $requirements = [],
         public array $children = [],
-        public array $warnings = []
+        public array $warnings = [],
+        public array $bundled = []
     ) {
     }
 
