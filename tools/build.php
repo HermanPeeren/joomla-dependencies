@@ -1,14 +1,19 @@
 <?php
 
 /**
- * Builds the fixture extensions into fixtures/dist/ and the event probe into probe/dist/.
+ * Builds the plugin into dist/, the fixture extensions into fixtures/dist/ and the event probe into probe/dist/.
  *
  *   php tools/build.php
+ *
+ * The library fixtures have an update server at FIXTURES_URL/updates/<element>.xml (default: the folder as WAMP
+ * serves it). Copy updates/<element>-<version>.xml over updates/<element>.xml to offer another version.
  */
 
 declare(strict_types=1);
 
 $root = \dirname(__DIR__);
+
+\define('FIXTURES_URL', rtrim(getenv('FIXTURES_URL') ?: 'http://localhost/joomla-dependencies/fixtures/dist', '/'));
 
 buildFixtures($root . '/fixtures/fixtures.php', $root . '/fixtures/dist');
 buildProbe($root . '/probe', $root . '/probe/dist');
@@ -51,7 +56,14 @@ function buildFixtures(string $definitionFile, string $dist): void
                 "$element.xml"    => libraryManifest($element, $version),
                 'src/Version.php' => libraryVersionClass($element, $version),
             ]);
+
+            // One update file per version; updates/<element>.xml is the one the update server offers.
+            @mkdir("$dist/updates", 0777, true);
+            file_put_contents("$dist/updates/$element-$version.xml", libraryUpdate($element, $version));
         }
+
+        // By default the update server offers the second-newest version.
+        copy("$dist/updates/$element-" . $versions[\count($versions) - 2] . '.xml', "$dist/updates/$element.xml");
     }
 
     foreach ($fixtures['components'] as $element => $component) {
@@ -112,6 +124,7 @@ function buildProbe(string $source, string $dist): void
 function libraryManifest(string $element, string $version): string
 {
     $namespace = 'JoomlaDependencies\\Fixture\\' . ucfirst($element);
+    $updates   = FIXTURES_URL . "/updates/$element.xml";
 
     return <<<XML
         <?xml version="1.0" encoding="UTF-8"?>
@@ -127,7 +140,37 @@ function libraryManifest(string $element, string $version): string
             <files>
                 <folder>src</folder>
             </files>
+            <updateservers>
+                <server type="extension" name="Fixture library $element">$updates</server>
+            </updateservers>
         </extension>
+
+        XML;
+}
+
+/**
+ * An update server file offering one version of the library.
+ */
+function libraryUpdate(string $element, string $version): string
+{
+    $download = FIXTURES_URL . "/lib_$element-$version.zip";
+
+    return <<<XML
+        <?xml version="1.0" encoding="UTF-8"?>
+        <updates>
+            <update>
+                <name>Fixture library $element</name>
+                <description>Fixture library $element $version</description>
+                <element>$element</element>
+                <type>library</type>
+                <client>site</client>
+                <version>$version</version>
+                <downloads>
+                    <downloadurl type="full" format="zip">$download</downloadurl>
+                </downloads>
+                <targetplatform name="joomla" version="6.*" />
+            </update>
+        </updates>
 
         XML;
 }
