@@ -2,7 +2,7 @@
 
 29 October 2026 · Herman Peeren
 
-"Path B" is one of several routes towards dependency management in Joomla that an earlier exploration compared: declarative dependencies in the extension manifest, with the installer keeping track of who needs what. Composer-based routes are the others.
+"Path B" is one of five routes towards dependency management in Joomla, labelled A to E: declarative dependencies in the extension manifest, with the installer keeping track of who needs what. [routes.md](routes.md) describes all five, from conventions only (A) to Composer embedded in core (D), and explains why B is prototyped first.
 
 ## Goal
 

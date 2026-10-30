@@ -21,9 +21,11 @@ require_once __DIR__ . '/../autoload.php';
 return new class () implements ServiceProviderInterface {
     public function register(Container $container): void
     {
+        // Lazy, as Joomla 6.1+ core plugins are: on PHP 8.4+ the plugin is only built when one of its events fires,
+        // so a request without installer activity doesn't construct it or its service.
         $container->set(
             PluginInterface::class,
-            function (Container $container) {
+            $container->lazy(Dependencies::class, function (Container $container) {
                 $plugin = new Dependencies(
                     (array) PluginHelper::getPlugin('system', 'dependencies'),
                     new DependencyService($container->get(DatabaseInterface::class))
@@ -31,7 +33,7 @@ return new class () implements ServiceProviderInterface {
                 $plugin->setApplication(Factory::getApplication());
 
                 return $plugin;
-            }
+            })
         );
     }
 };

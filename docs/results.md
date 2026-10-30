@@ -84,7 +84,7 @@ Ordered from most to least useful. Each one removes a workaround from the protot
 | 6 | **com_joomlaupdate's pre-update check** reads `joomla` and `php` dependencies | today it only knows update servers' `targetplatform` | |
 | 7 | **`composer/semver` as a runtime dependency** of core | one constraint syntax for everything, the same as Composer's | finding 9 |
 
-Changes 1–4 together are the "path B" core proposal; 5–7 can follow. None needs Composer on the site, and all are backwards compatible: an extension without `<dependencies>` behaves as before, and older Joomla versions ignore the element.
+Changes 1–4 together are the core proposal for route B ([routes.md](routes.md)); 5–7 can follow. None needs Composer on the site, and all are backwards compatible: an extension without `<dependencies>` behaves as before, and older Joomla versions ignore the element.
 
 ## Limits of the prototype
 

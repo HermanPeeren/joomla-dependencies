@@ -19,6 +19,8 @@ The prototype then:
 
 What it cannot do without core changes is part of the result: the prototype is meant to find out exactly which hooks Joomla core would need. See [docs/plan.md](docs/plan.md) for the design, the phases and the test scenarios.
 
+This is route B of five routes towards dependency management in Joomla, from conventions only to Composer embedded in core. [docs/routes.md](docs/routes.md) compares them and explains why this one comes first.
+
 ## Status
 
 - **Phase 0, done:** test site, fixture extensions and an event probe; findings in [docs/event-probe.md](docs/event-probe.md).
